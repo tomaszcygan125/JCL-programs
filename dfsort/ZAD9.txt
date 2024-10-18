@@ -1,0 +1,121 @@
+//ZAD9P    JOB  9032423,'ZAD9P',NOTIFY=&SYSUID                          
+//STEP0    EXEC PGM=IDCAMS                                              
+//SYSPRINT DD SYSOUT=*                                                  
+//SYSIN    DD *                                                         
+     DELETE  TSOUS02.JCL.T1.ZAD9P2                                      
+     DELETE  TSOUS02.JCL.T1.ZAD9P3                                      
+     DELETE  TSOUS02.JCL.T1.ZAD9P4                                      
+     DELETE  TSOUS02.JCL.T1.ZAD9P5                                      
+     DELETE  TSOUS02.JCL.T1.ZAD9P6                                      
+     DELETE  TSOUS02.JCL.T1.ZAD9P7                                      
+     DELETE  TSOUS02.JCL.T1.ZAD9P8                                      
+     DELETE  TSOUS02.JCL.T1.ZAD9POUT                                    
+     SET MAXCC=0                                                        
+/*                                                                      
+//STEP1    EXEC PGM=SORT                                                
+//SYSOUT   DD SYSOUT=*                                                  
+//SORTIN   DD DSN=TSOUS02.JCL.T1.ZAD9OUT,DISP=SHR                       
+//SORTOUT  DD DSN=TSOUS02.JCL.T1.ZAD9P1,DISP=OLD                        
+//SYSIN    DD *                                                         
+       OPTION COPY                                                      
+       OUTREC FIELDS=(1,50,SEQNUM,4,ZD,START=1,RESTART(1,10))           
+/*                                                                      
+//STEP2    EXEC PGM=SORT                                                
+//SYSOUT   DD SYSOUT=*                                                  
+//SORTIN   DD DSN=TSOUS02.JCL.T1.ZAD9P1,DISP=SHR                        
+//SORTOUT  DD DSN=TSOUS02.JCL.T1.ZAD9P2,DISP=(NEW,CATLG,DELETE),        
+//       SPACE=(TRK,(1,1),RLSE),DCB=(DSORG=PS,LRECL=100,RECFM=FB)       
+//SYSIN    DD *                                                         
+       OPTION COPY                                                      
+       INREC FIELDS=(1,55,51,4,ZD,MOD,+8,TO=ZD,LENGTH=1,100:X)          
+/*                                                                      
+//STEP4    EXEC PGM=SORT                                                
+//SYSOUT   DD SYSOUT=*                                                  
+//SORTIN   DD DSN=TSOUS02.JCL.T1.ZAD9P2,DISP=SHR
+//SORTOUT  DD DSN=TSOUS02.JCL.T1.ZAD9P3,DISP=(NEW,CATLG,DELETE),      
+// SPACE=(TRK,(1,1),RLSE),DCB=(DSORG=PS,LRECL=100,RECFM=FB)           
+//SYSIN    DD *                                                       
+  OPTION COPY                                                         
+  INCLUDE COND=(56,1,CH,EQ,C'1')                                      
+  OUTREC FIELDS=(1,10,SEQNUM,1,ZD,START=1,RESTART=(1,10))             
+/*                                                                    
+//STEP5   EXEC PGM=ICETOOL                                            
+//SYSOUT   DD SYSOUT=*                                                
+//WEJSCIE  DD DSN=TSOUS02.JCL.T1.ZAD9P2,DISP=SHR                      
+//WYJSCIE  DD DSN=TSOUS02.JCL.T1.ZAD9P4,DISP=(NEW,CATLG,DELETE),      
+// SPACE=(TRK,(1,1),RLSE),DCB=(DSORG=PS,LRECL=100,RECFM=FB)           
+//SYSPRINT DD SYSOUT=*                                                
+//DFSMSG   DD SYSOUT=*                                                
+//TOOLMSG  DD SYSOUT=*                                                
+//TOOLIN   DD *                                                       
+      OCCUR FROM(WEJSCIE) LIST(WYJSCIE) ON(1,10,CH) ON(56,1,CH) -     
+      ON(VALCNT) NOHEADER                                             
+/*                                                                    
+//*****************************************                           
+//* ZMIANA RZEBY PRZEPUSZCZALO 1 A NIE 0                              
+//**************************************                              
+//STEP6    EXEC PGM=SORT                                              
+//SYSOUT   DD   SYSOUT=*                                              
+//SORTIN   DD   DSN=TSOUS02.JCL.T1.ZAD9P4,DISP=SHR                    
+//SORTOUT  DD   DSN=TSOUS02.JCL.T1.ZAD9P5,DISP=(NEW,CATLG,DELETE),    
+// SPACE=(TRK,(1,1),RLSE),DCB=(DSORG=PS,LRECL=100,RECFM=FB)           
+//SYSIN    DD *                                                       
+          OPTION COPY                                                 
+          OUTREC FIELDS=(2,99,100:X)                                  
+           INCLUDE COND=(25,1,ZD,EQ,+1)                               
+/*                                                                    
+//STEP7    EXEC PGM=SORT                                              
+//SYSOUT   DD   SYSOUT=*                                              
+//SORTJNF1 DD   DSN=TSOUS02.JCL.T1.ZAD9P3,DISP=SHR                    
+//SORTJNF2 DD   DSN=TSOUS02.JCL.T1.ZAD9P5,DISP=SHR                    
+//SORTOUT DD   DSN=TSOUS02.JCL.T1.ZAD9P6,DISP=(NEW,CATLG,DELETE),       
+// SPACE=(TRK,(1,1),RLSE),DCB=(DSORG=PS,LRECL=100,RECFM=FB)             
+//SYSIN    DD *                                                         
+          OPTION COPY                                                   
+          JOINKEYS FILES=F1,FIELDS=(1,10,A)                             
+          JOINKEYS FILES=F2,FIELDS=(1,10,A)                             
+          REFORMAT FIELDS=(F1:1,12,F2:59,3)                             
+/*                                                                      
+//********************************************************************* 
+//* ADDING SEQNUM TO ZAD9P6 FILE TO MERGE IT LATER WITH ZAD9P2          
+//* OUTPUT OF STEP IS FILE ZAD9P7  / DODALEM RESTART /                  
+//********************************************************************* 
+//STEP8    EXEC PGM=SORT                                                
+//SYSOUT   DD SYSOUT=*                                                  
+//SORTIN   DD DSN=TSOUS02.JCL.T1.ZAD9P6,DISP=SHR                        
+//SORTOUT  DD DSN=TSOUS02.JCL.T1.ZAD9P7,DISP=(NEW,CATLG,DELETE),        
+//         SPACE=(TRK,(1,1),RLSE),DCB=(DSORG=PS,LRECL=100,RECFM=FB)     
+//SYSIN    DD *                                                         
+       OPTION COPY                                                      
+       OUTREC FIELDS=(1,15,45X,SEQNUM,4,ZD,START=1,INCR=8,              
+       RESTART=(1,10),100:C'1')                                         
+                                                                        
+/*                                                                      
+//********************************************************************* 
+//* ADDING SEQNUM TO ZAD9P2 FILE TO MERGE IT LATER WITH ZAD9P7          
+//* OUTPUT OF THIS STEP IS FILE ZAD9P8      /DODALEM RESTART /          
+//********************************************************************* 
+//STEP8    EXEC PGM=SORT                                                
+//SYSOUT   DD SYSOUT=*                                                  
+//SORTIN   DD DSN=TSOUS02.JCL.T1.ZAD9P2,DISP=SHR                        
+//SORTOUT  DD DSN=TSOUS02.JCL.T1.ZAD9P8,DISP=(NEW,CATLG,DELETE),        
+//         SPACE=(TRK,(1,1),RLSE),DCB=(DSORG=PS,LRECL=100,RECFM=FB)     
+//SYSIN    DD *                                                         
+       OPTION COPY                                                      
+       OUTREC FIELDS=(1,56,4X,SEQNUM,4,ZD,START=1,                      
+        RESTART=(1,10),100:C'2')           
+/*                                                                    
+//********************************************************************
+//* MERGING ZAD9P7 AND ZAD9P2 TO MAKE TECHNICAL HEADERS               
+//********************************************************************
+//STEP9    EXEC PGM=SORT                                              
+//SYSOUT   DD SYSOUT=*                                                
+//SORTIN02 DD DSN=TSOUS02.JCL.T1.ZAD9P8,DISP=SHR                      
+//SORTIN01 DD DSN=TSOUS02.JCL.T1.ZAD9P7,DISP=SHR                      
+//SORTOUT  DD DSN=TSOUS02.JCL.T1.ZAD9POUT,DISP=(NEW,CATLG,DELETE),    
+//         SPACE=(TRK,(1,1),RLSE),DCB=(DSORG=PS,LRECL=100,RECFM=FB)   
+//SYSIN    DD *                                                       
+        MERGE FIELDS=(1,10,CH,A,61,4,CH,A,100,1,CH,A)                 
+/*                                                                    
+//                                                                                                 
+                        

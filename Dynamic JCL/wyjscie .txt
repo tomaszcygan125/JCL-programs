@@ -1,0 +1,41 @@
+//STEPNR0 EXEC PGM=IDCAMS                                       
+//SYSPRINT DD SYSOUT=*                                          
+//SYSOUT   DD SYSOUT=*                                          
+//SYSIN    DD *                                                 
+                                                                
+ DELETE TSOUS02.TEST.DS.ABC                                     
+ DELETE TSOUS02.TEST.DS.DEF                                     
+ DELETE TSOUS02.TEST.DS.GHI                                     
+ DELETE TSOUS02.TEST.DS.JKL                                     
+ IF MAXCC=8 THEN                                                
+    SET MAXCC=0                                                 
+ END                                                            
+//* END OF FIRST STEP                                           
+//STEP0001 EXEC PGM=IEFBR14                                     
+//SYSPRINT DD SYSOUT=*                                          
+//SYSOUT   DD SYSOUT=*                                          
+//PLIK001 DD DSN=TSOUS02.TEST.DS.ABC,                           
+//            DISP=(NEW,CATLG,DELETE),                          
+//            SPACE=(CYL,(1,1),RLSE)                            
+//*                                                             
+//STEP0002 EXEC PGM=IEFBR14                                     
+//SYSPRINT DD SYSOUT=*                                          
+//SYSOUT   DD SYSOUT=*                                          
+//PLIK002 DD DSN=TSOUS02.TEST.DS.DEF,                           
+//            DISP=(NEW,CATLG,DELETE),                          
+//            SPACE=(CYL,(1,1),RLSE)                            
+//*                                                             
+//STEP0003 EXEC PGM=IEFBR14                                     
+//SYSPRINT DD SYSOUT=*                                          
+//SYSOUT   DD SYSOUT=*                                          
+//PLIK003 DD DSN=TSOUS02.TEST.DS.GHI,                           
+//            DISP=(NEW,CATLG,DELETE),                          
+//            SPACE=(CYL,(1,1),RLSE)                            
+//*                                                             
+//STEP0004 EXEC PGM=IEFBR14                                     
+//SYSPRINT DD SYSOUT=*          
+//SYSOUT   DD SYSOUT=*                 
+//PLIK004 DD DSN=TSOUS02.TEST.DS.JKL,  
+//            DISP=(NEW,CATLG,DELETE), 
+//            SPACE=(CYL,(1,1),RLSE)   
+//*                                                                    

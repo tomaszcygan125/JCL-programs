@@ -1,0 +1,56 @@
+//PRACA    JOB 92432,'DYNAMICZNY',NOTIFY=&SYSUID                        
+//**********************************************************************
+//STEPNR0  EXEC PGM=IDCAMS                                              
+//SYSPRINT DD   SYSOUT=*                                                
+//SYSOUT   DD   SYSOUT=*                                                
+//SYSIN    DD   *                                                       
+   DELETE TSOUS02.JCL.T1.JCL(GENER)                                     
+   IF MAXCC=8 THEN                                                      
+      SET MAXCC=0                                                       
+   END                                                                  
+/*                                                                      
+//STEPNR1  EXEC PGM=SORT                                                
+//SYSOUT   DD SYSOUT=*                                                  
+//SORTIN   DD DSN=TSOUS03.EXER.BATUT.SAMPIN5,DISP=SHR                   
+//SORTOUT  DD DSN=&&TEMPFILE,DISP=(NEW,PASS)                            
+//SYSIN    DD *                                                         
+  OPTION COPY                                                           
+  OUTREC FIELDS=(1,3,SEQNUM,3,ZD)                                       
+  OUTFIL REMOVECC,NODETAIL,BUILD=(80X),                                 
+  SECTIONS=(4,3,                                                        
+  HEADER3=('//S',4,3,' EXEC PGM=IEFBR14',/,                             
+           '//FILE',4,3,' DD DSN=&SYSUID..TEST.DS.',1,3,',',            
+           'DISP=(MOD,DELETE,DELETE)',',',/,                            
+           '//  SPACE=(TRK,(1,1),RLSE)',/,                              
+           '//SYSOUT   DD SYSOUT=*',/,                                  
+           '//SYSPRINT DD SYSOUT=*',/,                                  
+           '//*'))                                                      
+/*                                                                      
+//* THIS STEP WILL PREPARE AS MANY STEPS AS MANY LINES WE GOT           
+//* IN INPUT FILE                                                       
+//STEPNR2  EXEC PGM=SORT                                                
+//SYSOUT   DD SYSOUT=*                                                  
+//SORTIN   DD DSN=TSOUS03.EXER.BATUT.SAMPIN5,DISP=SHR                   
+//SORTOUT  DD DSN=&&TEMPFIL2,DISP=(NEW,PASS)                            
+//SYSIN    DD *                                                         
+       OPTION COPY   
+        OUTREC FIELDS=(1,3,SEQNUM,3,ZD)                              
+        OUTFIL  REMOVECC,NODETAIL,BUILD=(80X),                       
+        SECTIONS=(4,3,                                               
+        HEADER3=('//STEP0',4,3,X,'EXEC PGM=IEFBR14',/,               
+                 '//SYSPRINT DD SYSOUT=*',/,                         
+                 '//SYSOUT   DD SYSOUT=*',/,                         
+                 '//PLIK',4,3,' DD DSN=&SYSUID..TEST.DS.',1,3,',',/, 
+                 '//            DISP=(NEW,CATLG,DELETE)',',',/,      
+                 '//            SPACE=(CYL,(1,1),RLSE)',/,           
+                 '//* '))                                            
+ /*                                                                  
+ //*  THIS STEP WILL CONCATENATE BOTH FILES CREATED BY PROGRAM       
+ //STEPNR3  EXEC PGM=SORT                                            
+ //SORTIN   DD   DSN=&&TEMPFILE,DISP=(OLD,KEEP)                      
+ //         DD   DSN=&&TEMPFIL2,DISP=(OLD,KEEP)                      
+ //SORTOUT  DD   DSN=TSOUS02.JCL.T1.JCL(GENER),DISP=SHR              
+ //SYSOUT   DD   SYSOUT=*                                            
+ //SYSIN    DD   *                                                   
+    OPTION COPY                                                      
+ /*                                                                                                                     

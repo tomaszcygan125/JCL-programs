@@ -1,0 +1,113 @@
+//PRACA    JOB 92432,'DYNAMICZNY',NOTIFY=&SYSUID                        
+//**********************************************************************
+//*                                                                     
+//*  THIS JOB IS USED TO GENERATE A JCL THAT WILL CREATE                
+//*  X NUMBER OF FILES                                                  
+//*                                                                     
+//*  FILES WILL BE IN STRUCTURE &SYSUID.TEST.DS.XXX                     
+//*  WHERE XXX WILL BE TAKEN FROM FILE TSOUS03.EXER.BATUT.SAMPIN5       
+//*  AMOUNT OF STEPS ( EACH OF THEM WILL CRAETE ONE FILE) IS EQUAL      
+//*  TO NUMBER OF ROWS IN TSOUS03.EXER.BATUT.SAMPIN5                    
+//*                                                                     
+//*  FIRST STEP OF GENERATED JCL WILL DELETE ALL FILES THAT COULD       
+//*  BE ALREADY CREATED ( IT WILL DELETE ALL FILES THAT CAN BE CREATED  
+//*  WITH GIVEN INPUT FLIE)                                             
+//*                                                                     
+//* DESCRIPTION OF THIS JOB:                                            
+//*   STEP: STEPNR0                                                     
+//*   THIS STEPS WILL SIMPLY DELETE A MEMBER THAT WILL BE CREATED       
+//*   AT THE END OF THIS JOB                                            
+//*                                                                     
+//*   STEP: STEPNR1                                                     
+//*    THIS STEP WILL USER DFSORT UTILITY IN ORDER TO CREATE            
+//*    FIRST STEP OF THE GENERATED JCL ( THIS STEP WILL USE IDCAMS      
+//*    TO DELETE ALL FILES THAT CAN BE CREATED BY THE GENERATED JOB)    
+//*                                                                     
+//*   STEP: STEPNR2                                                     
+//*    THIS STEP WILL USER DFSORT TO CREATE X NUMBER OF STEPS           
+//*    ( EACH STEP WILL ALLOCATE ONE FILE) WHERE X IS THE NUMBER        
+//*    OF ROWS IN  TSOUS03.EXER.BATUT.SAMPIN5 FILE                      
+//*                                                                     
+//*                                                                     
+//*                                                                     
+//*                                                                     
+//*   STEP: STEPNR3                                                     
+//*    THIS STEP WILL CONCATENATE FILES THAT WERE CREATED IN            
+//*      STEPNR1 AND STEPNR2 AND WILL CREATE A MEMBER IN                
+//*     TSOUS02.JCL.T1.JCL PDS NAMED ( GENER) THAT WILL STORE      
+//*     GENERATED JCL                                              
+//*                                                                
+//*                                                                
+//*****************************************************************
+//STEPNR0  EXEC PGM=IDCAMS                                         
+//SYSPRINT DD   SYSOUT=*                                           
+//SYSOUT   DD   SYSOUT=*                                           
+//SYSIN    DD   *                                                  
+   DELETE TSOUS02.JCL.T1.JCL(GENER)                                
+   IF MAXCC=8 THEN                                                 
+      SET MAXCC=0                                                  
+   END                                                             
+/*                                                                 
+//*                                                                
+//STEPNR1  EXEC PGM=SORT                                           
+//SYSOUT   DD   SYSOUT=*                                           
+//SORTIN   DD   DSN=TSOUS03.EXER.BATUT.SAMPIN5,DISP=SHR            
+//SORTOUT  DD   DSN=&&TEMPFIL2,DISP=(NEW,PASS)                     
+//SYSIN    DD   *                                                  
+      OPTION COPY                                                  
+      OUTREC FIELDS=(1,3,SEQNUM,3,ZD)                              
+      OUTFIL  REMOVECC,NODETAIL,BUILD=(80X),                       
+      SECTIONS=(4,3,                                               
+      HEADER3=('.TEST.DS.',1,3))                                   
+//*                                                                
+//STEPNR2  EXEC PGM=CGENER,PARM=&SYSUID                            
+//STEPLIB  DD   DSN=TSOUS02.LIB.LOAD,DISP=SHR                      
+//INFILE   DD   DSN=&&TEMPFIL2,DISP=(OLD,PASS)                     
+//OUTFILE  DD   DSN=&&TEMPFIL3,DISP=(NEW,PASS)                     
+//SYSOUT   DD   SYSOUT=*                                           
+//SYSPRINT DD   SYSOUT=*                                           
+//*                                                                
+//STEPNR3  EXEC PGM=SORT                                           
+//SORTIN   DD   DSN=&&TEMPFIL3,DISP=(OLD,PASS)                     
+//SORTOUT  DD   DSN=&&TEMPFIL4,DISP=(NEW,PASS)                     
+//SYSOUT   DD   SYSOUT=*                                            
+//SYSIN    DD   *                                                   
+         OPTION COPY                                                
+         OUTREC FIELDS=(1,45,SEQNUM,3,ZD)                           
+         OUTFIL REMOVECC,NODETAIL,BUILD=(80X),                      
+         HEADER1('//STEPNR0 EXEC PGM=IDCAMS',/,                     
+                 '//SYSPRINT DD SYSOUT=*',/,                        
+                 '//SYSOUT   DD SYSOUT=*',/,                        
+                 '//SYSIN    DD *       ',/),                       
+         SECTIONS=(46,3,                                            
+         HEADER3=(' DELETE ',1,45)),                                
+         TRAILER1=(' IF MAXCC=8 THEN',/,                            
+                   '    SET MAXCC=0',/,                             
+                   ' END ',/,                                       
+                   '//* END OF FIRST STEP')                         
+/*                                                                  
+//STEPNR4  EXEC PGM=SORT                                            
+//SYSOUT   DD SYSOUT=*                                              
+//SORTIN   DD DSN=&&TEMPFIL3,DISP=(OLD,PASS)                        
+//SORTOUT  DD DSN=&&TEMPFIL5,DISP=(NEW,PASS)                        
+//SYSIN    DD *                                                     
+       OPTION COPY                                                  
+       OUTREC FIELDS=(1,45,SEQNUM,3,ZD)                             
+       OUTFIL  REMOVECC,NODETAIL,BUILD=(80X),                       
+       SECTIONS=(46,3,                                              
+       HEADER3=('//STEP0',46,3,X,'EXEC PGM=IEFBR14',/,              
+                '//SYSPRINT DD SYSOUT=*',/,                         
+                '//SYSOUT   DD SYSOUT=*',/,                         
+                '//PLIK',46,3,' DD DSN=',1,45,',',/,                
+                '//            DISP=(NEW,CATLG,DELETE)',',',/,      
+                '//            SPACE=(CYL,(1,1),RLSE)',/,           
+                '//* '))                                            
+/*                                                                  
+//STEPNR5  EXEC PGM=SORT                                            
+//SYSOUT   DD SYSOUT=*                                              
+//SORTIN   DD DSN=&&TEMPFIL4,DISP=(OLD,KEEP)                        
+//         DD DSN=&&TEMPFIL5,DISP=(OLD,KEEP)           
+//SORTOUT  DD DSN=TSOUS02.JCL.T1.JCL(GENER),DISP=SHR   
+//SYSIN    DD *                                        
+       OPTION COPY                                     
+/*                                                     

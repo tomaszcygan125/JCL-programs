@@ -1,0 +1,201 @@
+       IDENTIFICATION DIVISION.                                         
+       PROGRAM-ID. CGENER.                                              
+      ******************************************************************
+      *                                                                 
+      *   PROGRAM IS USED TO RETRIVE SYSUID AND SAVE THAT INTO          
+      * A FILE                                                          
+      *  THIS FILE WILL BE LATER USED TO GET THIS VALUE                 
+      ******************************************************************
+       ENVIRONMENT DIVISION.                                            
+       INPUT-OUTPUT SECTION.                                            
+       FILE-CONTROL.                                                    
+           SELECT INFILE ASSIGN TO INFILE                               
+           ORGANIZATION IS SEQUENTIAL                                   
+           ACCESS MODE IS SEQUENTIAL                                    
+           FILE STATUS IS WS-INFLIE-FILE-STATUS.                        
+                                                                        
+           SELECT OUTFILE ASSIGN TO OUTFILE                             
+           ORGANIZATION IS SEQUENTIAL                                   
+           ACCESS MODE IS SEQUENTIAL                                    
+           FILE STATUS IS WS-OUTFLIE-FILE-STATUS.                       
+       DATA DIVISION.                                                   
+       FILE SECTION.                                                    
+       FD INFILE                                                        
+           RECORD CONTAINS 80 CHARACTERS                                
+           RECORDING MODE F                                             
+           DATA RECORD IS WS-INFILE-STRUCTURE.                          
+       01 WS-INFILE-STRUCTURE.                                          
+           05 WS-INFILE-DATA.                                           
+              10 WS-INFILE-TEMP-URL       PIC X(12).                    
+              10 WS-INFILE-REST           PIC X(68).                    
+       FD OUTFILE                                                       
+           RECORD CONTAINS 80 CHARACTERS                                
+           RECORDING MODE F                                             
+           DATA RECORD IS WS-OUTFILE-STRUCTURE.                         
+       01 WS-OUTFILE-STRUCTURE.                                         
+           05 WS-OUTFILE-DATA              PIC X(80).                   
+       WORKING-STORAGE SECTION.                                         
+       01 WS-OUTFLIE-FILE-STATUS            PIC 99.                     
+           88 SO-OUTFILE-FILE-STATUS-OK    VALUE 00.                    
+       01 WS-INFLIE-FILE-STATUS            PIC 99.                      
+           88 SO-INFILE-FILE-STATUS-OK    VALUE 00.                     
+           88 SO-INFILE-END-OF-FILE       VALUE 10.                     
+       01 SW-SWITCHES.                                                  
+           05 SW-IF-PROCESS-OK             PIC X.                       
+              88 SO-PROCCESS-OK            VALUE '1'.                   
+              88 SO-PROCCESS-NOT-OK        VALUE '2'.                   
+           05 SW-IF-END-OF-INFILE-FILE     PIC X.                       
+              88 SO-NOT-END-OF-INFLIE      VALUE '1'.                   
+              88 SO-END-OF-INFILE          VALUE '2'.                   
+       LINKAGE SECTION.                                                 
+       01 LS-DATA-FROM-JCL.                                             
+           05 LS-JCL-DATA-LENGTH PIC S9(4) COMP.                        
+           05 LS-JCL-DATA-TEXT   PIC X(10).                             
+       PROCEDURE DIVISION USING LS-DATA-FROM-JCL.                       
+           PERFORM 1000-INIT                                            
+           PERFORM 2000-PROCESS                                         
+           PERFORM 3000-FINAL                                           
+           .                                                            
+      ******************************************************************
+      *                        1000-INIT                                
+      ******************************************************************
+       1000-INIT.                                                       
+           PERFORM 1005-SET-START-FLAGS                                 
+           .                                                            
+      ******************************************************************
+      *                     1005-SET-START-FLAGS                        
+      ******************************************************************
+       1005-SET-START-FLAGS.                                            
+           SET   SO-OUTFILE-FILE-STATUS-OK TO TRUE                      
+           SET   SO-PROCCESS-OK           TO TRUE                       
+           .                                                            
+      ******************************************************************
+      *                        2000-PROCESS                             
+      ******************************************************************
+       2000-PROCESS.                                                    
+           PERFORM 2001-OPEN-OUTFILE-FILE                               
+           PERFORM 2005-OPEN-INFILE-FILE                                
+                                                                        
+           PERFORM 2007-READ-AND-PROCESS-FILES                          
+                                                                        
+           PERFORM 2004-CLOSE-OUTFILE-FILE                              
+           PERFORM 2006-CLOSE-INFILE-FILE                               
+           .                                                            
+      ******************************************************************
+      *                     2001-OPEN-OUTFILE-FILE                      
+      ******************************************************************
+       2001-OPEN-OUTFILE-FILE.                                          
+           OPEN OUTPUT OUTFILE                                          
+           IF NOT SO-OUTFILE-FILE-STATUS-OK THEN                        
+              SET SO-PROCCESS-NOT-OK TO TRUE                            
+              PERFORM 3000-FINAL                                        
+           END-IF                                                       
+           .                                                            
+      ******************************************************************
+      *                     2005-OPEN-INFILE-FILE                       
+      ******************************************************************
+       2005-OPEN-INFILE-FILE.                                           
+           OPEN INPUT INFILE                                            
+           IF NOT SO-INFILE-FILE-STATUS-OK THEN                         
+              SET SO-PROCCESS-NOT-OK TO TRUE                            
+              PERFORM 3000-FINAL                                        
+           END-IF                                                       
+           .                                                            
+      ******************************************************************
+      *                    2002-MOVE-JCL-DATA-TO-FILE.                  
+      ******************************************************************
+       2002-MOVE-JCL-DATA-TO-FILE.                                      
+           MOVE LS-JCL-DATA-TEXT TO WS-OUTFILE-DATA 
+           .                                                            
+      ******************************************************************
+      *                  2003-WRITE-OUTFILE-FILE                        
+      ******************************************************************
+       2003-WRITE-OUTFILE-FILE.                                         
+           WRITE WS-OUTFILE-STRUCTURE                                   
+                                                                        
+           IF NOT SO-OUTFILE-FILE-STATUS-OK THEN                        
+              SET SO-PROCCESS-NOT-OK TO TRUE                            
+              PERFORM 3000-FINAL                                        
+           END-IF                                                       
+           .                                                            
+      ******************************************************************
+      *                    2004-CLOSE-OUTFILE-FILE                      
+      ******************************************************************
+       2004-CLOSE-OUTFILE-FILE.                                         
+           CLOSE OUTFILE                                                
+           IF NOT SO-OUTFILE-FILE-STATUS-OK THEN                        
+              SET SO-PROCCESS-NOT-OK TO TRUE                            
+              PERFORM 3000-FINAL                                        
+           END-IF                                                       
+           .                                                            
+      ******************************************************************
+      *                    2006-CLOSE-INFILE-FILE                       
+      ******************************************************************
+       2006-CLOSE-INFILE-FILE.                                          
+           CLOSE INFILE                                                 
+           IF NOT SO-INFILE-FILE-STATUS-OK THEN                         
+              SET SO-PROCCESS-NOT-OK TO TRUE                            
+              PERFORM 3000-FINAL                                        
+           END-IF                                                       
+           .                                                            
+      ******************************************************************
+      *                2007-READ-AND-PROCESS-FILES                      
+      ******************************************************************
+       2007-READ-AND-PROCESS-FILES.                                     
+           SET SO-NOT-END-OF-INFLIE TO TRUE                             
+                                                                        
+           PERFORM 2008-READ-INFILE-FILE                                
+           PERFORM UNTIL SO-END-OF-INFILE                               
+              PERFORM 2009-PREPARE-THE-RECORD                           
+              PERFORM 2003-WRITE-OUTFILE-FILE                           
+              PERFORM 2008-READ-INFILE-FILE                             
+           END-PERFORM                                                  
+           .                                                            
+      ******************************************************************
+      *                   2008-READ-INFILE-FILE                         
+      ******************************************************************
+       2008-READ-INFILE-FILE.                                           
+           READ INFILE                                                  
+           EVALUATE TRUE                                                
+           WHEN SO-INFILE-FILE-STATUS-OK                                
+              CONTINUE                                                  
+           WHEN SO-INFILE-END-OF-FILE                                   
+              SET SO-END-OF-INFILE   TO TRUE                            
+           WHEN OTHER                                                   
+              SET SO-PROCCESS-NOT-OK TO TRUE                            
+              PERFORM 3000-FINAL                                        
+           END-EVALUATE                                                 
+           .                                                            
+      ******************************************************************
+      *                   2009-PREPARE-THE-RECORD.                      
+      ******************************************************************
+       2009-PREPARE-THE-RECORD.                                         
+           MOVE SPACE TO WS-OUTFILE-STRUCTURE                           
+           STRING  LS-JCL-DATA-TEXT(1:LS-JCL-DATA-LENGTH),              
+                   WS-INFILE-TEMP-URL                                   
+           DELIMITED BY SPACE                                           
+           INTO WS-OUTFILE-STRUCTURE                                    
+           ON OVERFLOW                                                  
+              PERFORM 2011-DISPLAY-OVERFLOW-ERROR     
+           END-STRING                                                  
+           .                                                           
+      *****************************************************************
+      *                  2011-DISPLAY-OVERFLOW-ERROR                   
+      *****************************************************************
+       2011-DISPLAY-OVERFLOW-ERROR.                                    
+           DISPLAY 'OVERFLOW!!!! '                                     
+           SET SO-PROCCESS-NOT-OK TO TRUE                              
+           PERFORM 3000-FINAL                                          
+           .                                                           
+      *****************************************************************
+      *                        3000-FINAL                              
+      *****************************************************************
+       3000-FINAL.                                                     
+           IF SO-PROCCESS-OK THEN                                      
+              DISPLAY 'PROCESS WAS OKEY '                              
+           ELSE                                                        
+              DISPLAY 'PROCESS ENDED WITH ERRORS'                      
+           END-IF                                                      
+           STOP RUN                                                    
+           .                                                                             
+                    
